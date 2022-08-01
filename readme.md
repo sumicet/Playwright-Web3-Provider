@@ -14,7 +14,7 @@
 6. Test if it works: `expect(await page.evaluate(() =>
    window['ethereum'])).toBeTruthy();`
 
-7. You can mimic `MetaMask` or other wallets by changing provider vars like below
+7. You can mimic `MetaMask` or other wallets by changing `ethereum` vars like below
 ```
 await page.addInitScript(() => {
     window['ethereum']['isMetaMask'] = true;
