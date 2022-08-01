@@ -22,5 +22,5 @@ await page.addInitScript(() => {
 });
 ```
 
-Warning: The provider.js file will contain your secret recovery phrase so
+Warning: The `provider.js` file will contain your secret recovery phrase so
 watch where you post this code.
