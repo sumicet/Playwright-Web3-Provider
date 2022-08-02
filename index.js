@@ -24,6 +24,7 @@ class CustomizedBridge extends Eip1193Bridge {
             method = args[0];
             params = args[1];
         }
+        // console.log('send called with params', params, method, callback);
         if (method === 'eth_requestAccounts' || method === 'eth_accounts') {
             if (isCallbackForm) {
                 return callback({ result: [TEST_ADDRESS] });
@@ -40,7 +41,13 @@ class CustomizedBridge extends Eip1193Bridge {
             let result = null;
             if (method === 'personal_sign') {
                 result = await super.send('eth_sign', [params[1], params[0]]);
-            } else if (method === 'eth_sendTransaction') {
+            } else if (
+                params &&
+                params.length &&
+                params[0].from &&
+                (method === 'eth_sendTransaction' || method === 'eth_call')
+            ) {
+                // console.log('params[0]', params[0]);
                 // Hexlify will not take gas, must be gasLimit, set this property to be gasLimit
                 params[0].gasLimit = params[0].gas;
                 delete params[0].gas;
@@ -49,11 +56,23 @@ class CustomizedBridge extends Eip1193Bridge {
                 delete params[0].from;
                 const req = JsonRpcProvider.hexlifyTransaction(params[0]);
                 // Hexlify sets the gasLimit property to be gas again and send transaction requires gasLimit
-                req.gasLimit = req.gas;
-                delete req.gas;
+                req['gasLimit'] = req['gas'];
+                delete req['gas'];
+
+                if (!this.signer) {
+                    throw new Error('No signer');
+                }
+
+                // console.log('JsonRpcProvider.hexlifyTransaction result', req);
+
                 // Send the transaction
-                const tx = await this.signer.sendTransaction(req);
-                result = tx.hash;
+                if (method === 'eth_sendTransaction') {
+                    const tx = await this.signer.sendTransaction(req);
+                    result = tx.hash;
+                } else {
+                    const tx = await this.signer.call(req);
+                    result = tx;
+                }
             } else {
                 result = await super.send(method, params);
             }
