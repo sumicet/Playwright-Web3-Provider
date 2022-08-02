@@ -9,6 +9,7 @@ transactions automatically. It can:
 - send transactions
 - sign transactions
 - request accounts
+- contract calls
 
 For now, it only works for Mumbai, but you can easily customize it to work with
 other chains by changing the `rpc url` and the `chain id` (`0x13881`).
