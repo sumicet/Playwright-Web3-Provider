@@ -1,5 +1,20 @@
 ## Web3 Provider for Playwright
 
+### What does this do?
+
+Normally we get the ethereum provider from a wallet extension. Running tests in
+headless mode means we have no extensions installed => no ethereum provider.
+This script will inject a customized provider with a wallet that signs
+transactions automatically. It can:
+- send transactions
+- sign transactions
+- request accounts
+
+For now, it only works for Mumbai, but you can easily customize it to work for
+other chains by changing the `rpc url` and the `chain id` (`0x13881`).
+
+### How to setup?
+
 1. Initialize a var called `SECRET_RECOVERY_PHRASE` inside an .env file
 
 2. Run `npm run bundle` to compile `index.js` with webpack
