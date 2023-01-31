@@ -22,7 +22,7 @@ other chains by changing the `rpc url` and the `chain id` (`0x13881`).
 
 3. The result is `bundle/provider.js`.
 
-4. Open test.html and console log window.ethereum to test the code.
+4. Open `test.html` and console log `window.ethereum` to test the code.
 
 5. Copy this file in the project where you use
    `Playwright`. Usage: `await page.addInitScript({ path: _path_to_provider.js });`
@@ -38,5 +38,4 @@ await page.addInitScript(() => {
 });
 ```
 
-Warning: The `provider.js` file will contain your secret recovery phrase so
-watch where you post this code.
+Warning: The `provider.js` file will contain your secret recovery phrase.
