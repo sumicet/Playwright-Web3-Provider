@@ -1,98 +1,45 @@
-import { JsonRpcProvider } from '@ethersproject/providers';
-import { Wallet } from '@ethersproject/wallet';
-import { Eip1193Bridge } from '@ethersproject/experimental/lib/eip1193-bridge';
+import { Web3Provider } from '@ethersproject/providers';
 
-const TEST_ADDRESS = Wallet.fromMnemonic(process.env.SECRET_RECOVERY_PHRASE).address;
+const setProvider = async () => {
+    try {
+        window.ethereum = 'hi';
+        const { EthereumPrivateKeyProvider } = await import('@web3auth/ethereum-provider');
+        const init = await EthereumPrivateKeyProvider.getProviderInstance({
+            chainConfig: {
+                rpcTarget: 'https://rpc-mumbai.maticvigil.com',
+                chainId: '0x13881', // hex chain id
+                blockExplorer: '',
+                displayName: 'Matic Mumbai Testnet',
+                ticker: 'matic',
+                tickerName: 'matic',
+            },
+            privKey: process.env.PRIVATE_KEY,
+        });
 
-class CustomizedBridge extends Eip1193Bridge {
-    async sendAsync(...args) {
-        return this.send(...args);
-    }
-
-    async send(...args) {
-        const isCallbackForm = typeof args[0] === 'object' && typeof args[1] === 'function';
-        let callback;
-        let method;
-        let params;
-        if (isCallbackForm) {
-            callback = args[1];
-            // eslint-disable-next-line prefer-destructuring
-            method = args[0].method;
-            // eslint-disable-next-line prefer-destructuring
-            params = args[0].params;
-        } else {
-            method = args[0];
-            params = args[1];
+        if (!init?.provider) {
+            return;
         }
-        // console.log('send called with params', params, method, callback);
-        if (method === 'eth_requestAccounts' || method === 'eth_accounts') {
-            if (isCallbackForm) {
-                return callback({ result: [TEST_ADDRESS] });
-            }
-            return Promise.resolve([TEST_ADDRESS]);
-        }
-        if (method === 'eth_chainId') {
-            if (isCallbackForm) {
-                return callback(null, { result: '0x13881' }); // 80001
-            }
-            return Promise.resolve('0x13881'); // 80001
-        }
-        try {
-            let result = null;
-            if (method === 'personal_sign') {
-                result = await super.send('eth_sign', [params[1], params[0]]);
-            } else if (
-                params &&
-                params.length &&
-                params[0].from &&
-                (method === 'eth_sendTransaction' || method === 'eth_call')
-            ) {
-                // console.log('params[0]', params[0]);
-                // Hexlify will not take gas, must be gasLimit, set this property to be gasLimit
-                params[0].gasLimit = params[0].gas;
-                delete params[0].gas;
-                // If from is present on eth_sendTransaction it errors, removing it makes the library set
-                // from as the connected wallet which works fine
-                delete params[0].from;
-                const req = JsonRpcProvider.hexlifyTransaction(params[0]);
-                // Hexlify sets the gasLimit property to be gas again and send transaction requires gasLimit
-                req['gasLimit'] = req['gas'];
-                delete req['gas'];
 
-                if (!this.signer) {
-                    throw new Error('No signer');
+        const provider = new Web3Provider(init.provider);
+
+        window.ethereum = {
+            ...provider.provider,
+            request: async (...args) => {
+                console.log(args[0].method);
+                if (args[0].method === 'eth_requestAccounts') {
+                    args[0].method = 'eth_accounts';
                 }
-
-                // console.log('JsonRpcProvider.hexlifyTransaction result', req);
-
-                // Send the transaction
-                if (method === 'eth_sendTransaction') {
-                    const tx = await this.signer.sendTransaction(req);
-                    result = tx.hash;
-                } else {
-                    const tx = await this.signer.call(req);
-                    result = tx;
-                }
-            } else {
-                result = await super.send(method, params);
-            }
-            if (isCallbackForm) {
-                return callback(null, { result });
-            }
-            return result;
-        } catch (error) {
-            if (isCallbackForm) {
-                return callback(error, null);
-            }
-            throw error;
-        }
+                const result = await provider.provider?.request?.(...args);
+                console.log(result, 'from', args[0].method);
+                return result;
+            },
+            once: async (...args) => provider.once(...args),
+            on: async (...args) => provider.on(...args),
+            isMetaMask: true,
+        };
+    } catch (error) {
+        console.log(error);
     }
-}
+};
 
-const rpcProvider = new JsonRpcProvider('https://matic-mumbai.chainstacklabs.com', 80001);
-const privateKey = Wallet.fromMnemonic(process.env.SECRET_RECOVERY_PHRASE).privateKey;
-const signer = new Wallet(privateKey, rpcProvider);
-
-const provider = new CustomizedBridge(signer, rpcProvider);
-
-window['ethereum'] = provider;
+setProvider();
